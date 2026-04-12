@@ -892,7 +892,12 @@
 // ═══════════════════════════════════════════════════════════════
 // API KEY — hier deinen Anthropic API Key eintragen
 // ═══════════════════════════════════════════════════════════════
-const ANTHROPIC_API_KEY ="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";
+// API Key wird sicher in localStorage gespeichert (nie im Code!)
+function getAnthropicApiKey() {
+  return localStorage.getItem('pizzeria_anthropic_key') || '';
+}
+// Kompatibilität: ANTHROPIC_API_KEY als getter
+Object.defineProperty(window, 'ANTHROPIC_API_KEY', { get: getAnthropicApiKey, configurable: true });
 
 // ═══════════════════════════════════════════════════════════════
 // DATA
@@ -1366,19 +1371,6 @@ function renderKombisTab() {
         </div>
       </div>
       <div class="bento-side">
-        <div class="bento-small bento-small-yellow" onclick="void(0)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#f59e0b">water_drop</span>
-            <span style="font-size:12px;font-weight:700;color:#5a403c">Mozzarella Status</span>
-          </div>
-          ${mozzarella && mozzPct !== null ? `
-            <div style="font-size:22px;font-weight:800;color:${mozzPct<50?'#dc2626':'#f59e0b'};font-family:'Plus Jakarta Sans',sans-serif">${mozzStock} kg</div>
-            <div style="height:5px;background:#fef3c7;border-radius:3px;overflow:hidden;margin:8px 0 4px">
-              <div style="height:100%;width:${mozzPct}%;background:#f59e0b;border-radius:3px"></div>
-            </div>
-            <div style="font-size:11px;color:#8e706b">${mozzPct}% vom Min (${mozzarella.minStock} kg)</div>
-          ` : `<div style="font-size:13px;color:#8e706b">Nicht gefunden</div>`}
-        </div>
         <div class="bento-small bento-small-red" onclick="switchTab('fehlmaterial')" style="cursor:pointer">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
             <span class="material-symbols-outlined" style="font-size:18px;color:#dc2626">error</span>
@@ -1877,8 +1869,14 @@ const SUCHE_STATE = {
   loading: false,
   error: null,
   loadingStep: '',
-  addedIds: new Set(),
+  addedIds: [],
+  shopFilter: 'alle',
 };
+
+function sucheSetFilter(shop) {
+  SUCHE_STATE.shopFilter = shop;
+  renderSucheTab();
+}
 
 // Shop color map for Austrian retailers
 const AT_SHOP_COLORS = {
@@ -1936,13 +1934,9 @@ function renderSucheTab() {
         </button>
       </div>
       <div class="filter-chip-row">
-        <button class="filter-chip active" onclick="void(0)">🌐 Alle Shops</button>
-        <button class="filter-chip" onclick="void(0)">🏪 Hofer</button>
-        <button class="filter-chip" onclick="void(0)">🛒 Billa</button>
-        <button class="filter-chip" onclick="void(0)">🌿 Spar</button>
-        <button class="filter-chip" onclick="void(0)">🔵 Lidl</button>
-        <button class="filter-chip" onclick="void(0)">🏭 Metro</button>
-        <button class="filter-chip" onclick="void(0)">🥩 Etsan</button>
+        ${[['alle','🌐 Alle Shops'],['hofer','🏪 Hofer'],['billa','🛒 Billa'],['spar','🌿 Spar'],['lidl','🔵 Lidl'],['metro','🏭 Metro'],['etsan','🥩 Etsan']].map(([val,label])=>
+          `<button class="filter-chip${SUCHE_STATE.shopFilter===val?' active':''}" onclick="sucheSetFilter('${val}')">${label}</button>`
+        ).join('')}
       </div>
     </div>
     <div class="deals-scroll-row">
@@ -2036,20 +2030,24 @@ function renderSucheTab() {
 }
 
 function renderSearchResults() {
-  const { results, query } = SUCHE_STATE;
+  const { results, query, shopFilter } = SUCHE_STATE;
+  const filteredResults = shopFilter === 'alle'
+    ? results
+    : results.filter(r => r.shop && r.shop.toLowerCase().includes(shopFilter));
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   let html = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <span style="font-size:14px;color:#5a403c">
-        <span style="font-weight:700;color:#261816">${results.length} Angebot${results.length !== 1 ? 'e' : ''}</span>
-        für „${escHtml(query)}"
+        <span style="font-weight:700;color:#261816">${filteredResults.length} Angebot${filteredResults.length !== 1 ? 'e' : ''}</span>
+        für „${escHtml(query)}"${shopFilter !== 'alle' ? ` · <span style="color:#8B0000">${shopFilter}</span>` : ''}
       </span>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px">`;
 
-  results.forEach((r, idx) => {
+  filteredResults.forEach((r, _fi) => {
+    const idx = results.indexOf(r);
     const color = shopColor(r.shop);
     const savings = (r.originalPrice && r.price && r.originalPrice > r.price)
       ? Math.round((1 - r.price / r.originalPrice) * 100)
@@ -2079,7 +2077,7 @@ function renderSearchResults() {
       </div>`;
     }
 
-    const isAdded = SUCHE_STATE.addedIds.has(idx);
+    const isAdded = SUCHE_STATE.addedIds.includes(idx);
 
     html += `
       <div class="result-card-new">
@@ -2171,7 +2169,7 @@ function addResultToInventory(idx, btn) {
     quelle:      'suche',
   });
 
-  SUCHE_STATE.addedIds.add(idx);
+  if (!SUCHE_STATE.addedIds.includes(idx)) SUCHE_STATE.addedIds.push(idx);
 
   // Update button in-place without full re-render
   btn.classList.add('added', 'adding');
@@ -2206,7 +2204,7 @@ async function startSearch() {
   SUCHE_STATE.error = null;
   SUCHE_STATE.results = [];
   SUCHE_STATE.query = query;
-  SUCHE_STATE.addedIds = new Set();
+  SUCHE_STATE.addedIds = [];
   SUCHE_STATE.loadingStep = 'Verbinde mit Claude …';
   renderSucheTab();
 
@@ -5371,7 +5369,18 @@ function bizPizzaCalcChange(i, field, val) {
   }).join('');
 }
 
-function bizSavePizzaCalcBtn() { bizShowToast('✅ Pizza-Kalkulation gespeichert'); }
+function bizSavePizzaCalcBtn() {
+  // Liest aktuelle Werte aus DOM und speichert explizit
+  const d = bizGetPizzaCalc();
+  d.forEach((p, i) => {
+    const preis = parseFloat(document.querySelector(`#pizza-calc-tbody tr:nth-child(${i+1}) input[onchange*="preis"]`)?.value);
+    const kosten = parseFloat(document.querySelector(`#pizza-calc-tbody tr:nth-child(${i+1}) input[onchange*="kosten"]`)?.value);
+    if (!isNaN(preis)) p.preis = preis;
+    if (!isNaN(kosten)) p.kosten = kosten;
+  });
+  bizSavePizzaCalc(d);
+  bizShowToast('✅ Pizza-Kalkulation gespeichert');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MONATSBERICHT
@@ -5617,6 +5626,21 @@ function renderBizSettings() {
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
 
+  <!-- API Key -->
+  <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px">
+    <div style="font-weight:700;font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:6px">
+      <span class="material-symbols-outlined" style="font-size:18px;color:#8B0000">key</span>
+      Anthropic API Key
+    </div>
+    <label style="font-size:12px;font-weight:600;color:#5a403c;display:block;margin-bottom:5px">API Key (für Suche & Upload)</label>
+    <input id="settings-apikey" type="password" value="${localStorage.getItem('pizzeria_anthropic_key')||''}" placeholder="sk-ant-api03-..."
+      style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid #e3beb8;font-size:13px;font-family:monospace;outline:none;margin-bottom:12px;box-sizing:border-box">
+    <button onclick="bizSaveApiKey()"
+      style="width:100%;padding:10px;border-radius:10px;border:none;background:#8B0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">
+      API Key speichern
+    </button>
+  </div>
+
   <!-- Firmen-Daten -->
   <div style="background:#fff;border-radius:16px;border:1.5px solid #e3beb8;padding:24px">
     <div style="font-weight:700;font-size:15px;margin-bottom:16px;display:flex;align-items:center;gap:6px">
@@ -5678,6 +5702,20 @@ function renderBizSettings() {
   </div>
 
 </div>`;
+}
+
+function bizSaveApiKey() {
+  const key = document.getElementById('settings-apikey')?.value?.trim() || '';
+  if (key && !key.startsWith('sk-ant-')) {
+    bizShowToast('⚠️ Ungültiger API Key Format'); return;
+  }
+  if (key) {
+    localStorage.setItem('pizzeria_anthropic_key', key);
+    bizShowToast('✅ API Key gespeichert');
+  } else {
+    localStorage.removeItem('pizzeria_anthropic_key');
+    bizShowToast('🗑️ API Key entfernt');
+  }
 }
 
 function bizSaveSettings_() {
