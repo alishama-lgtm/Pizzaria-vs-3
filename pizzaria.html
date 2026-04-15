@@ -1340,66 +1340,119 @@ function renderKombisTab() {
   const mozzStock = mozzarella ? stockLevels['mozzarella'] : null;
   const mozzPct = mozzarella ? Math.min(100, Math.round((mozzStock / mozzarella.minStock) * 100)) : null;
 
+  // Schnellinfo-Zeile: 3 Mini-Stats
+  const okCount = PRODUCTS.length - low.length;
+  const savingsEstimate = two.length > 0 && single.length > 0
+    ? Math.max(0, single[0].total - two[0].total) : 0;
+
   const dashHtml = `
+    <!-- Schnellinfo-Zeile -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+      <div onclick="switchTab('produkte')" style="background:#fff;border-radius:14px;border:1px solid #f0e8e6;padding:14px 12px;text-align:center;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(139,0,0,.10)'" onmouseout="this.style.boxShadow='none'">
+        <div style="font-size:22px;font-weight:800;color:${okCount===PRODUCTS.length?'#16a34a':'#f59e0b'};font-family:'Plus Jakarta Sans',sans-serif">${okCount}/${PRODUCTS.length}</div>
+        <div style="font-size:10px;font-weight:600;color:#8e706b;margin-top:3px">Im Soll</div>
+      </div>
+      <div onclick="switchTab('fehlmaterial')" style="background:#fff;border-radius:14px;border:1px solid #f0e8e6;padding:14px 12px;text-align:center;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(139,0,0,.10)'" onmouseout="this.style.boxShadow='none'">
+        <div style="font-size:22px;font-weight:800;color:${fmDringend>0?'#dc2626':fmOpen>0?'#f59e0b':'#16a34a'};font-family:'Plus Jakarta Sans',sans-serif">${fmOpen}</div>
+        <div style="font-size:10px;font-weight:600;color:#8e706b;margin-top:3px">Fehlmaterial</div>
+      </div>
+      <div onclick="switchTab('business')" style="background:#fff;border-radius:14px;border:1px solid #f0e8e6;padding:14px 12px;text-align:center;cursor:pointer;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 4px 16px rgba(139,0,0,.10)'" onmouseout="this.style.boxShadow='none'">
+        <div style="font-size:22px;font-weight:800;color:${monthRev>0?'#2e7d32':'#9ca3af'};font-family:'Plus Jakarta Sans',sans-serif">${monthRev>0?'€'+Math.round(monthRev/1000)+'k':'—'}</div>
+        <div style="font-size:10px;font-weight:600;color:#8e706b;margin-top:3px">Umsatz ${monthNames[m-1]}</div>
+      </div>
+    </div>
+
+    <!-- Bento Grid -->
     <div class="bento-grid">
       <div class="bento-hero">
-        <div style="font-size:11px;font-weight:700;color:#8e706b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Kritischstes Produkt</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+          <span class="material-symbols-outlined" style="font-size:15px;color:#8e706b">inventory_2</span>
+          <span style="font-size:11px;font-weight:700;color:#8e706b;text-transform:uppercase;letter-spacing:.08em">Lager-Status</span>
+        </div>
         ${criticalProduct ? `
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-            <span class="material-symbols-outlined" style="font-size:28px;color:#ba1a1a">warning</span>
+            <div style="width:44px;height:44px;border-radius:12px;background:${critPct<40?'#ffdad6':critPct<70?'#fff3cd':'#dcfce7'};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <span class="material-symbols-outlined" style="font-size:22px;color:${critPct<40?'#ba1a1a':critPct<70?'#c8860a':'#16a34a'}">${critPct<40?'warning':critPct<70?'info':'check_circle'}</span>
+            </div>
             <div>
-              <div style="font-size:20px;font-weight:800;color:#261816;font-family:'Plus Jakarta Sans',sans-serif">${criticalProduct.name}</div>
-              <div style="font-size:12px;color:#8e706b">${stockLevels[criticalProduct.id].toLocaleString('de-DE')} / ${criticalProduct.minStock} ${criticalProduct.unit}</div>
+              <div style="font-size:17px;font-weight:800;color:#261816;font-family:'Plus Jakarta Sans',sans-serif;line-height:1.2">${criticalProduct.name}</div>
+              <div style="font-size:12px;color:#8e706b;margin-top:2px">${stockLevels[criticalProduct.id].toLocaleString('de-DE')} ${criticalProduct.unit} von ${criticalProduct.minStock} ${criticalProduct.unit} min.</div>
             </div>
           </div>
-          <div style="height:8px;background:#f0e8e6;border-radius:4px;overflow:hidden;margin-bottom:8px">
-            <div style="height:100%;width:${critPct}%;background:${critPct < 40 ? '#dc2626' : critPct < 70 ? '#f59e0b' : '#16a34a'};border-radius:4px;transition:width .3s ease"></div>
+          <div style="height:6px;background:#f0e8e6;border-radius:3px;overflow:hidden;margin-bottom:6px">
+            <div style="height:100%;width:${critPct}%;background:${critPct<40?'#dc2626':critPct<70?'#f59e0b':'#16a34a'};border-radius:3px;transition:width .4s ease"></div>
           </div>
-          <div style="font-size:12px;color:${critPct < 40 ? '#dc2626' : '#8e706b'};font-weight:600">${critPct}% vom Minimum</div>
-        ` : `<div style="font-size:14px;color:#16a34a;font-weight:600">✅ Alle Bestände OK</div>`}
-        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #f0e8e6;display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div onclick="switchTab('fehlmaterial')" style="cursor:pointer">
-            <div style="font-size:26px;font-weight:800;color:${low.length>0?'#dc2626':'#16a34a'};font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
-            <div style="font-size:11px;color:#8e706b;font-weight:500">Unter Minimum</div>
-            <div style="font-size:11px;font-weight:700;color:${low.length>0?'#dc2626':'#16a34a'};margin-top:3px">${low.length>0?'🔴 Nachbestellen':'✅ Alles OK'}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:${critPct<40?'#dc2626':'#8e706b'};font-weight:600">${critPct}% vom Minimum</span>
+            ${low.length>0?`<span style="font-size:11px;font-weight:700;color:#dc2626;background:#ffdad6;padding:2px 8px;border-radius:10px">${low.length} unter Limit</span>`:''}
           </div>
-          <div>
-            <div style="font-size:26px;font-weight:800;color:#1565c0;font-family:'Plus Jakarta Sans',sans-serif">${PRODUCTS.length}</div>
-            <div style="font-size:11px;color:#8e706b;font-weight:500">Produkte gesamt</div>
-            <div style="font-size:11px;font-weight:700;color:#2e7d32;margin-top:3px">📦 ${PRODUCTS.length - low.length} im Soll</div>
+        ` : `
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:44px;height:44px;border-radius:12px;background:#dcfce7;display:flex;align-items:center;justify-content:center">
+              <span class="material-symbols-outlined" style="font-size:22px;color:#16a34a">check_circle</span>
+            </div>
+            <div>
+              <div style="font-size:16px;font-weight:700;color:#16a34a">Alle Bestände OK</div>
+              <div style="font-size:12px;color:#8e706b">Kein Produkt unter Minimum</div>
+            </div>
+          </div>
+        `}
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #f0e8e6;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div onclick="switchTab('fehlmaterial')" style="cursor:pointer;text-align:center">
+            <div style="font-size:20px;font-weight:800;color:${low.length>0?'#dc2626':'#16a34a'};font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
+            <div style="font-size:10px;color:#8e706b;font-weight:500;margin-top:1px">Unter Min.</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:20px;font-weight:800;color:#1565c0;font-family:'Plus Jakarta Sans',sans-serif">${PRODUCTS.length}</div>
+            <div style="font-size:10px;color:#8e706b;font-weight:500;margin-top:1px">Produkte</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:20px;font-weight:800;color:${savingsEstimate>0?'#2e7d32':'#9ca3af'};font-family:'Plus Jakarta Sans',sans-serif">${savingsEstimate>0?'€'+savingsEstimate.toFixed(0):'—'}</div>
+            <div style="font-size:10px;color:#8e706b;font-weight:500;margin-top:1px">Ersparnis</div>
           </div>
         </div>
       </div>
       <div class="bento-side">
         <div class="bento-small bento-small-red" onclick="switchTab('fehlmaterial')" style="cursor:pointer">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#dc2626">error</span>
-            <span style="font-size:12px;font-weight:700;color:#5a403c">Kritische Artikel</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:11px;font-weight:700;color:#5a403c">Fehlmaterial</span>
+            <span class="material-symbols-outlined" style="font-size:16px;color:#dc2626">error</span>
           </div>
-          <div style="font-size:22px;font-weight:800;color:#dc2626;font-family:'Plus Jakarta Sans',sans-serif">${low.length}</div>
-          <div style="font-size:11px;color:#8e706b;margin-top:4px">${low.length>0 ? low.slice(0,2).map(p=>p.name).join(', ')+(low.length>2?'…':'') : 'Alle im grünen Bereich'}</div>
+          <div style="font-size:26px;font-weight:800;color:${fmOpen>0?'#dc2626':'#16a34a'};font-family:'Plus Jakarta Sans',sans-serif">${fmOpen}</div>
+          <div style="font-size:10px;color:#8e706b;margin-top:3px">${fmDringend>0?fmDringend+' dringend':fmOpen>0?'offen':'Alles OK'}</div>
         </div>
-        <div class="bento-small" style="border-left:4px solid #2e7d32">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span class="material-symbols-outlined" style="font-size:18px;color:#2e7d32">euro</span>
-            <span style="font-size:12px;font-weight:700;color:#5a403c">Umsatz ${monthNames[m-1]}</span>
+        <div class="bento-small bento-small-red" style="border-left-color:#dc2626" onclick="switchTab('produkte')" style="cursor:pointer">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:11px;font-weight:700;color:#5a403c">Lager</span>
+            <span class="material-symbols-outlined" style="font-size:16px;color:#8B0000">inventory_2</span>
+          </div>
+          <div style="font-size:26px;font-weight:800;color:${low.length>0?'#dc2626':'#16a34a'};font-family:'Plus Jakarta Sans',sans-serif">${low.length>0?low.length+'⚠':'✓'}</div>
+          <div style="font-size:10px;color:#8e706b;margin-top:3px">${low.length>0?low[0].name:'Alles im Soll'}</div>
+        </div>
+        <div class="bento-small" style="border-left:4px solid #2e7d32;cursor:pointer" onclick="switchTab('business')">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-size:11px;font-weight:700;color:#5a403c">${monthNames[m-1]}</span>
+            <span class="material-symbols-outlined" style="font-size:16px;color:#2e7d32">euro</span>
           </div>
           <div style="font-size:20px;font-weight:800;color:${monthRev>0?'#2e7d32':'#9ca3af'};font-family:'Plus Jakarta Sans',sans-serif">${monthRev>0?'€ '+Math.round(monthRev).toLocaleString('de-AT'):'—'}</div>
-          <div style="font-size:11px;color:#8e706b;margin-top:4px">${monthRev>0?'aus Kassabuch':'Noch keine Daten'}</div>
+          <div style="font-size:10px;color:#8e706b;margin-top:3px">${monthRev>0?'Kassabuch':'Keine Daten'}</div>
         </div>
       </div>
     </div>`;
 
   if (!hasLow) {
     document.getElementById('panel-kombis').innerHTML = dashHtml + `
-      <div style="text-align:center;padding:60px 20px">
-        <div style="width:64px;height:64px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
-          <span class="material-symbols-outlined filled" style="font-size:32px;color:#16a34a">check_circle</span>
+      <div style="background:#fff;border-radius:16px;border:1px solid #f0e8e6;padding:32px 24px;text-align:center">
+        <div style="width:56px;height:56px;border-radius:16px;background:#dcfce7;display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+          <span class="material-symbols-outlined" style="font-size:28px;color:#16a34a">check_circle</span>
         </div>
-        <h3 style="font-size:18px;font-weight:700;color:#261816;margin-bottom:6px">Alle Bestände in Ordnung</h3>
-        <p style="font-size:13px;color:#5a403c;max-width:340px;margin:0 auto;line-height:1.6">
+        <div style="font-size:16px;font-weight:700;color:#261816;margin-bottom:6px">Alle Bestände in Ordnung</div>
+        <div style="font-size:13px;color:#8e706b;max-width:300px;margin:0 auto;line-height:1.6">
           Sobald Produkte unter ihr Minimum fallen, erscheinen hier die günstigsten Einkaufskombinationen.
-        </p>
+        </div>
+        <button onclick="switchTab('produkte')" style="margin-top:16px;padding:9px 20px;border-radius:10px;border:1.5px solid #e3beb8;background:#fff;color:#8B0000;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">
+          Lagerstand prüfen
+        </button>
       </div>`;
     return;
   }
