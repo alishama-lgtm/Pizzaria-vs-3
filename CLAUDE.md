@@ -49,6 +49,49 @@ Vollständiges Protokoll: siehe `AGENTS.md` im Repo-Root.
 2. Codex → Optimierung & Test (Prompt in `CODEX_PROMPT.md`)
 3. Claude Code → Finalisierung & Commit
 
+## MCP-Server (aktive Agenten)
+
+Konfiguration liegt in `.mcp.json` im Repo-Root. Claude Code lädt sie automatisch.
+
+| Agent | Zweck | Key-Variable |
+|-------|-------|--------------|
+| **GitHub** | Issues, PRs, Commits | `GITHUB_TOKEN` |
+| **Notion** | Seiten, Datenbanken | `NOTION_API_KEY` |
+| **Perplexity** | Web-Suche, Preisrecherche | `PERPLEXITY_API_KEY` |
+| **Brave Search** | Angebotssuche | `BRAVE_API_KEY` |
+
+### Einrichtung auf neuem Gerät (Mac)
+
+```bash
+# 1. Ins Projekt-Verzeichnis wechseln
+cd /pfad/zu/Pizzaria-vs-3
+
+# 2. Umgebungsvariablen setzen (einmalig in ~/.zshrc)
+echo 'export NOTION_API_KEY=DEIN_KEY_HIER' >> ~/.zshrc
+# PERPLEXITY_API_KEY und BRAVE_API_KEY analog hinzufügen wenn vorhanden
+
+# 3. Aktivieren
+source ~/.zshrc
+
+# 4. Claude Code starten — MCP-Server laufen automatisch
+claude
+```
+
+### Einrichtung auf neuem Gerät (Linux/Server)
+
+```bash
+# .env Datei anlegen (wird nicht gepusht — steht in .gitignore)
+cp .env.example .env
+# Keys in .env eintragen, dann Claude Code starten
+```
+
+### Keys holen
+
+- **Notion:** https://www.notion.so/my-integrations → "New integration"
+- **Perplexity:** https://www.perplexity.ai/settings/api → "Generate"
+- **Brave Search:** https://brave.com/search/api/ → "Get started for free"
+- **GitHub:** https://github.com/settings/tokens → "Generate new token"
+
 ## Wichtige Regeln
 
 - JavaScript-Variablen mit `let`/`const` NIE inline vor ihrer Deklaration aufrufen (TDZ-Bug!)
