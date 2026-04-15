@@ -39,6 +39,16 @@ im passenden Unterordner nach.
 Vollständige Ordnerstruktur: `C:\Users\shama\Claude\Pizzaria\rechnungen\`
 Details siehe: `rechnungen\RECHNUNGEN.md`
 
+## Agenten-Kollaboration mit Codex
+
+Dieses Projekt verwendet ein **2-Agenten-System**: Claude Code + OpenAI Codex.
+Vollständiges Protokoll: siehe `AGENTS.md` im Repo-Root.
+
+**Kurzfassung:**
+1. Claude Code → Analyse & Entwurf
+2. Codex → Optimierung & Test (Prompt in `CODEX_PROMPT.md`)
+3. Claude Code → Finalisierung & Commit
+
 ## Wichtige Regeln
 
 - JavaScript-Variablen mit `let`/`const` NIE inline vor ihrer Deklaration aufrufen (TDZ-Bug!)
