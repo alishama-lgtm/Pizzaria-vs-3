@@ -1,0 +1,17 @@
+# Geheime Konfiguration — NIEMALS committen
+.env
+*.env.local
+
+# Node
+node_modules/
+
+# Datenbank-Backups
+*.db-journal
+*.db-wal
+*.db-shm
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
